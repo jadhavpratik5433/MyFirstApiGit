@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Salary from "./Salary";
 
 import {
     getAllEmployees,
@@ -12,12 +13,17 @@ import "../css/style.css";
 
 function Dashboard({ onLogout }) {
 
+    const [showSalary, setShowSalary] = useState(false);
     const [employees, setEmployees] = useState([]);
-
     const [loading, setLoading] = useState(false);
 
-    const [showForm, setShowForm] = useState(false);
+    // Selected employee for popup
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
 
+    // Show Add Salary form
+    const [showSalaryForm, setShowSalaryForm] = useState(false);
+
+    const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
 
     const [employee, setEmployee] = useState({
@@ -54,10 +60,7 @@ function Dashboard({ onLogout }) {
         }
         catch (error) {
 
-            console.error(
-                "Get Employees Error:",
-                error
-            );
+            console.error("Get Employees Error:", error);
 
             alert(
                 error.response?.data?.message ||
@@ -68,23 +71,18 @@ function Dashboard({ onLogout }) {
         finally {
 
             setLoading(false);
+
         }
     };
 
 
-    // ================================
-    // LOAD EMPLOYEES
-    // ================================
-
     useEffect(() => {
-
         handleGetEmployees();
-
     }, []);
 
 
     // ================================
-    // INPUT CHANGE
+    // EMPLOYEE INPUT CHANGE
     // ================================
 
     const handleChange = (e) => {
@@ -93,11 +91,12 @@ function Dashboard({ onLogout }) {
             ...employee,
             [e.target.name]: e.target.value
         });
+
     };
 
 
     // ================================
-    // CREATE / UPDATE
+    // SAVE EMPLOYEE
     // ================================
 
     const handleSaveEmployee = async (e) => {
@@ -128,6 +127,7 @@ function Dashboard({ onLogout }) {
                     result?.message ||
                     "Employee Created Successfully!"
                 );
+
             }
 
 
@@ -141,7 +141,6 @@ function Dashboard({ onLogout }) {
             });
 
             setEditMode(false);
-
             setShowForm(false);
 
             await handleGetEmployees();
@@ -149,60 +148,55 @@ function Dashboard({ onLogout }) {
         }
         catch (error) {
 
-            console.error(
-                "Save Employee Error:",
-                error
-            );
+    console.error("Save Employee Error:", error);
 
-            alert(
-                error.response?.data?.message ||
-                "Operation failed"
-            );
+    console.log("STATUS:", error.response?.status);
+    console.log("DATA:", error.response?.data);
+    console.log("MESSAGE:", error.message);
 
-        }
+    alert(
+        JSON.stringify(
+            error.response?.data ||
+            error.message ||
+            "Operation failed"
+        )
+    );
+
+}
         finally {
 
             setLoading(false);
+
         }
+
     };
 
 
     // ================================
-    // EDIT
+    // EDIT EMPLOYEE
     // ================================
 
     const handleEditEmployee = (employeeData) => {
 
         setEmployee({
-
             id: employeeData.id,
-
-            name:
-                employeeData.name || "",
-
-            emailAddress:
-                employeeData.emailAddress || "",
-
-            department:
-                employeeData.department || "",
-
-            position:
-                employeeData.position || "",
-
-            dob:
-                employeeData.dob
-                    ? employeeData.dob.substring(0, 10)
-                    : ""
+            name: employeeData.name || "",
+            emailAddress: employeeData.emailAddress || "",
+            department: employeeData.department || "",
+            position: employeeData.position || "",
+            dob: employeeData.dob
+                ? employeeData.dob.substring(0, 10)
+                : ""
         });
 
         setEditMode(true);
-
         setShowForm(true);
+
     };
 
 
     // ================================
-    // DELETE
+    // DELETE EMPLOYEE
     // ================================
 
     const handleDeleteEmployee = async (id) => {
@@ -234,10 +228,7 @@ function Dashboard({ onLogout }) {
         }
         catch (error) {
 
-            console.error(
-                "Delete Error:",
-                error
-            );
+            console.error("Delete Error:", error);
 
             alert(
                 error.response?.data?.message ||
@@ -248,7 +239,9 @@ function Dashboard({ onLogout }) {
         finally {
 
             setLoading(false);
+
         }
+
     };
 
 
@@ -261,6 +254,7 @@ function Dashboard({ onLogout }) {
         localStorage.removeItem("token");
 
         onLogout();
+
     };
 
 
@@ -282,23 +276,69 @@ function Dashboard({ onLogout }) {
         });
 
         setShowForm(true);
+
     };
+
+
+    // ================================
+    // EMPLOYEE NAME CLICK
+    // ================================
+
+    const handleEmployeeClick = (emp) => {
+
+        console.log("Selected Employee:", emp);
+
+        setSelectedEmployee(emp);
+
+        setShowSalaryForm(false);
+
+    };
+
+
+    // ================================
+    // CLOSE EMPLOYEE POPUP
+    // ================================
+
+    const handleClosePopup = () => {
+
+        setSelectedEmployee(null);
+
+        setShowSalaryForm(false);
+
+    };
+
+
+    // ================================
+    // SALARY PAGE
+    // ================================
+
+    if (showSalary) {
+
+        return (
+            <Salary />
+        );
+
+    }
 
 
     return (
 
         <div className="dashboard">
 
-
-            {/* =========================
-                NAVBAR
-            ========================= */}
+            {/* ================= NAVBAR ================= */}
 
             <div className="navbar">
 
-                <h2>
-                    MyFirstApi
-                </h2>
+                <h2>MyFirstApi</h2>
+
+
+                <button
+                    className="secondary-button"
+                    onClick={() => setShowSalary(true)}
+                >
+                    Salary
+                </button>
+
 
                 <button
                     className="logout-button"
@@ -310,9 +350,7 @@ function Dashboard({ onLogout }) {
             </div>
 
 
-            {/* =========================
-                DASHBOARD
-            ========================= */}
+            {/* ================= DASHBOARD ================= */}
 
             <div className="dashboard-container">
 
@@ -331,9 +369,7 @@ function Dashboard({ onLogout }) {
                 </button>
 
 
-                {/* =========================
-                    FORM
-                ========================= */}
+                {/* ================= EMPLOYEE FORM ================= */}
 
                 {showForm && (
 
@@ -349,9 +385,7 @@ function Dashboard({ onLogout }) {
                         </h2>
 
 
-                        <form
-                            onSubmit={handleSaveEmployee}
-                        >
+                        <form onSubmit={handleSaveEmployee}>
 
                             <div className="employee-grid">
 
@@ -386,9 +420,7 @@ function Dashboard({ onLogout }) {
                                     <input
                                         type="email"
                                         name="emailAddress"
-                                        value={
-                                            employee.emailAddress
-                                        }
+                                        value={employee.emailAddress}
                                         onChange={handleChange}
                                         required
                                         placeholder="Enter Email"
@@ -407,9 +439,7 @@ function Dashboard({ onLogout }) {
 
                                     <input
                                         name="department"
-                                        value={
-                                            employee.department
-                                        }
+                                        value={employee.department}
                                         onChange={handleChange}
                                         placeholder="Enter Department"
                                     />
@@ -427,9 +457,7 @@ function Dashboard({ onLogout }) {
 
                                     <input
                                         name="position"
-                                        value={
-                                            employee.position
-                                        }
+                                        value={employee.position}
                                         onChange={handleChange}
                                         placeholder="Enter Position"
                                     />
@@ -448,13 +476,12 @@ function Dashboard({ onLogout }) {
                                     <input
                                         type="date"
                                         name="dob"
-                                        value={
-                                            employee.dob
-                                        }
+                                        value={employee.dob}
                                         onChange={handleChange}
                                     />
 
                                 </div>
+
 
                             </div>
 
@@ -484,7 +511,6 @@ function Dashboard({ onLogout }) {
                                 onClick={() => {
 
                                     setShowForm(false);
-
                                     setEditMode(false);
 
                                 }}
@@ -495,6 +521,7 @@ function Dashboard({ onLogout }) {
                                 Cancel
                             </button>
 
+
                         </form>
 
                     </div>
@@ -502,9 +529,7 @@ function Dashboard({ onLogout }) {
                 )}
 
 
-                {/* =========================
-                    EMPLOYEE LIST
-                ========================= */}
+                {/* ================= EMPLOYEE LIST ================= */}
 
                 <div className="employee-table-container">
 
@@ -579,38 +604,69 @@ function Dashboard({ onLogout }) {
                                 {employees.map(
                                     (emp) => (
 
-                                        <tr
-                                            key={emp.id}
-                                        >
+                                        <tr key={emp.id}>
+
+
+                                            {/* EMPLOYEE NAME */}
 
                                             <td>
-                                                {emp.name}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleEmployeeClick(emp)
+                                                    }
+                                                    style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        padding: 0,
+                                                        color: "#007bff",
+                                                        cursor: "pointer",
+                                                        fontWeight: "bold"
+                                                    }}
+                                                >
+                                                    {emp.name}
+                                                </button>
+
                                             </td>
+
+
+                                            {/* EMAIL */}
 
                                             <td>
                                                 {emp.emailAddress}
                                             </td>
 
+
+                                            {/* DEPARTMENT */}
+
                                             <td>
                                                 {emp.department}
                                             </td>
+
+
+                                            {/* POSITION */}
 
                                             <td>
                                                 {emp.position}
                                             </td>
 
+
+                                            {/* DOB */}
+
                                             <td>
                                                 {emp.dob}
                                             </td>
+
+
+                                            {/* ACTIONS */}
 
                                             <td>
 
                                                 <button
                                                     className="edit-button"
                                                     onClick={() =>
-                                                        handleEditEmployee(
-                                                            emp
-                                                        )
+                                                        handleEditEmployee(emp)
                                                     }
                                                 >
                                                     Edit
@@ -630,6 +686,7 @@ function Dashboard({ onLogout }) {
 
                                             </td>
 
+
                                         </tr>
 
                                     )
@@ -645,8 +702,311 @@ function Dashboard({ onLogout }) {
 
             </div>
 
+
+            {/* ================================================= */}
+            {/* EMPLOYEE DETAILS POPUP */}
+            {/* ================================================= */}
+
+            {selectedEmployee && (
+
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        zIndex: 9999
+                    }}
+                    onClick={handleClosePopup}
+                >
+
+
+                    <div
+                        style={{
+                            background: "#fff",
+                            width: "500px",
+                            maxWidth: "90%",
+                            padding: "25px",
+                            borderRadius: "10px",
+                            boxShadow: "0 5px 20px rgba(0,0,0,0.3)"
+                        }}
+                        onClick={(e) =>
+                            e.stopPropagation()
+                        }
+                    >
+
+
+                        {/* POPUP HEADER */}
+
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center"
+                            }}
+                        >
+
+                            <h2>
+                                Employee Details
+                            </h2>
+
+
+                            <button
+                                type="button"
+                                onClick={handleClosePopup}
+                                style={{
+                                    border: "none",
+                                    background: "transparent",
+                                    fontSize: "24px",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+
+                        <hr />
+
+
+                        {/* EMPLOYEE ID */}
+
+                      
+
+
+                        {/* NAME */}
+
+                        <p>
+                            <strong>
+                                Name:
+                            </strong>{" "}
+                            {selectedEmployee.name}
+                        </p>
+
+
+                        {/* EMAIL */}
+
+                        <p>
+                            <strong>
+                                Email:
+                            </strong>{" "}
+                            {selectedEmployee.emailAddress}
+                        </p>
+
+
+                        {/* DEPARTMENT */}
+
+                        <p>
+                            <strong>
+                                Department:
+                            </strong>{" "}
+                            {selectedEmployee.department}
+                        </p>
+
+
+                        {/* POSITION */}
+
+                        <p>
+                            <strong>
+                                Position:
+                            </strong>{" "}
+                            {selectedEmployee.position}
+                        </p>
+
+
+                        {/* DOB */}
+
+                        <p>
+                            <strong>
+                                Date of Birth:
+                            </strong>{" "}
+                            {selectedEmployee.dob}
+                        </p>
+
+
+                        <hr />
+
+
+                        {/* ================= SALARY SECTION ================= */}
+
+                        {!showSalaryForm ? (
+
+                            <div>
+
+                                <h3>
+                                    Salary Details
+                                </h3>
+
+
+                                <p>
+                                    No Salary Details Found
+                                </p>
+
+
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={() =>
+                                        setShowSalaryForm(true)
+                                    }
+                                >
+                                    + Add Salary
+                                </button>
+
+                            </div>
+
+                        ) : (
+
+                            <div>
+
+                                <h3>
+                                    Add Salary
+                                </h3>
+
+
+                                {/* SALARY MONTH */}
+
+                                <div style={{ marginBottom: "15px" }}>
+
+                                    <label>
+                                        Salary Month
+                                    </label>
+
+                                    <input
+                                        type="month"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            marginTop: "5px"
+                                        }}
+                                    />
+
+                                </div>
+
+
+                                {/* SALARY DATE */}
+
+                                <div style={{ marginBottom: "15px" }}>
+
+                                    <label>
+                                        Salary Date
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            marginTop: "5px"
+                                        }}
+                                    />
+
+                                </div>
+
+
+                                {/* PAYMENT STATUS */}
+
+                                <div style={{ marginBottom: "15px" }}>
+
+                                    <label>
+                                        Payment Status
+                                    </label>
+
+                                    <select
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            marginTop: "5px"
+                                        }}
+                                    >
+
+                                        <option value="">
+                                            Select Status
+                                        </option>
+
+                                        <option value="Paid">
+                                            Paid
+                                        </option>
+
+                                        <option value="Pending">
+                                            Pending
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                {/* REMARKS */}
+
+                                <div style={{ marginBottom: "15px" }}>
+
+                                    <label>
+                                        Remarks
+                                    </label>
+
+                                    <textarea
+                                        placeholder="Enter Remarks"
+                                        rows="3"
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            marginTop: "5px"
+                                        }}
+                                    />
+
+                                </div>
+
+
+                                {/* SAVE SALARY */}
+
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={() =>
+                                        alert(
+                                            "Salary Save API will be connected next."
+                                        )
+                                    }
+                                >
+                                    Save Salary
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() =>
+                                        setShowSalaryForm(false)
+                                    }
+                                    style={{
+                                        marginLeft: "10px"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+
+                            </div>
+
+                        )}
+
+                    </div>
+
+                </div>
+
+            )}
+
         </div>
+
     );
+
 }
+
 
 export default Dashboard;

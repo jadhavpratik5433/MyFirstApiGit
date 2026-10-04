@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -22,3 +23,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/MyFirstApi/obj
+/MyFirstApi/bin/Debug/net10.0
+>>>>>>> 477eff251603345b7e5560ad4c11a48398a3ce45

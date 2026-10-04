@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { loginUser } from "../services/authService";
+
+import {
+    loginUser,
+    generateQrCode,
+    verifyOtp
+} from "../services/authService";
+
 import "../css/style.css";
 
 function Login({ onLogin, onRegister }) {
@@ -7,58 +13,63 @@ function Login({ onLogin, onRegister }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    const [qrCode, setQrCode] = useState("");
+    const [otp, setOtp] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-
+    // =========================
+    // LOGIN
+    // =========================
     const handleLogin = async (e) => {
 
         e.preventDefault();
 
         setError("");
 
-
         if (!email || !password) {
-
-            setError(
-                "Please enter Email and Password"
-            );
-
+            setError("Please enter Email and Password");
             return;
         }
-
 
         try {
 
             setLoading(true);
 
+            // Login API call
+            const result = await loginUser(email, password);
 
-            const result = await loginUser(
-                email,
-                password
-            );
-
-
-            console.log(
-                "Login Response:",
-                result
-            );
-
+            console.log("Login Response:", result);
 
             if (result?.data?.token) {
 
+                // Store token
                 localStorage.setItem(
                     "token",
                     result.data.token
                 );
 
+                // Generate QR Code
+                const qrResult = await generateQrCode(email);
 
-                alert(
-                    "Login Successful!"
+                console.log(
+                    "QR Response:",
+                    qrResult
                 );
 
+                if (qrResult?.data) {
 
-                onLogin();
+                    // Show QR Code
+                    setQrCode(qrResult.data);
+
+                }
+                else {
+
+                    setError(
+                        "QR Code generation failed"
+                    );
+                }
 
             }
             else {
@@ -67,7 +78,6 @@ function Login({ onLogin, onRegister }) {
                     result?.message ||
                     "Token not found"
                 );
-
             }
 
         }
@@ -77,7 +87,6 @@ function Login({ onLogin, onRegister }) {
                 "Login Error:",
                 error
             );
-
 
             if (error.response) {
 
@@ -92,7 +101,88 @@ function Login({ onLogin, onRegister }) {
                 setError(
                     "Unable to connect to API!"
                 );
+            }
 
+        }
+        finally {
+
+            setLoading(false);
+
+        }
+    };
+
+
+    // =========================
+    // VERIFY OTP
+    // =========================
+    const handleVerifyOtp = async () => {
+
+        setError("");
+
+        // Check OTP
+        if (!otp || otp.length !== 6) {
+
+            setError(
+                "Please enter 6 digit OTP"
+            );
+
+            return;
+        }
+
+        try {
+
+            setLoading(true);
+
+            // Verify OTP API call
+            const result = await verifyOtp(
+                email,
+                otp
+            );
+
+            console.log(
+                "Verify OTP Response:",
+                result
+            );
+
+            if (result?.data) {
+
+                alert(
+                    "OTP Verified Successfully!"
+                );
+
+                // Now allow login
+                onLogin();
+
+            }
+            else {
+
+                setError(
+                    result?.message ||
+                    "OTP verification failed"
+                );
+            }
+
+        }
+        catch (error) {
+
+            console.error(
+                "OTP Verification Error:",
+                error
+            );
+
+            if (error.response) {
+
+                setError(
+                    error.response.data?.message ||
+                    "Invalid OTP"
+                );
+
+            }
+            else {
+
+                setError(
+                    "Unable to connect to API!"
+                );
             }
 
         }
@@ -110,15 +200,12 @@ function Login({ onLogin, onRegister }) {
 
             <div className="login-card">
 
-                <h1>
-                    MyFirstApi
-                </h1>
+                <h1>MyFirstApi</h1>
 
-                <h2>
-                    Login
-                </h2>
+                <h2>Login</h2>
 
 
+                {/* ERROR MESSAGE */}
                 {error && (
 
                     <div
@@ -130,15 +217,18 @@ function Login({ onLogin, onRegister }) {
                             marginBottom: "15px"
                         }}
                     >
+
                         {error}
+
                     </div>
 
                 )}
 
 
+                {/* LOGIN FORM */}
                 <form onSubmit={handleLogin}>
 
-
+                    {/* EMAIL */}
                     <div className="form-group">
 
                         <label>
@@ -157,6 +247,7 @@ function Login({ onLogin, onRegister }) {
                     </div>
 
 
+                    {/* PASSWORD */}
                     <div className="form-group">
 
                         <label>
@@ -175,6 +266,7 @@ function Login({ onLogin, onRegister }) {
                     </div>
 
 
+                    {/* LOGIN BUTTON */}
                     <button
                         type="submit"
                         className="login-button"
@@ -191,36 +283,135 @@ function Login({ onLogin, onRegister }) {
                 </form>
 
 
-                <div
-                    style={{
-                        textAlign: "center",
-                        marginTop: "20px"
-                    }}
-                >
+                {/* ========================= */}
+                {/* QR CODE + OTP SECTION */}
+                {/* ========================= */}
 
-                    <span>
-                        Don't have an account?
-                    </span>
+                {qrCode && (
 
-                    <br />
-
-                    <button
-                        type="button"
-                        className="secondary-button"
+                    <div
                         style={{
-                            marginTop: "10px",
-                            width: "100%"
+                            textAlign: "center",
+                            marginTop: "25px",
+                            padding: "20px",
+                            borderTop:
+                                "1px solid #ddd"
                         }}
-                        onClick={onRegister}
                     >
-                        Create New Account
-                    </button>
 
-                </div>
+                        <h3>
+                            Scan QR Code
+                        </h3>
+
+
+                        {/* QR CODE */}
+                        <img
+                            src={`data:image/png;base64,${qrCode}`}
+                            alt="QR Code"
+                            style={{
+                                width: "220px",
+                                height: "220px",
+                                marginTop: "10px"
+                            }}
+                        />
+
+
+                        <p
+                            style={{
+                                marginTop: "10px"
+                            }}
+                        >
+                            Scan this QR Code using
+                            your Authenticator App.
+                        </p>
+
+
+                        {/* OTP INPUT */}
+                        <input
+                            type="text"
+                            placeholder="Enter 6 digit OTP"
+                            value={otp}
+                            maxLength={6}
+                            onChange={(e) =>
+                                setOtp(
+                                    e.target.value
+                                )
+                            }
+                            style={{
+                                width: "100%",
+                                padding: "12px",
+                                marginTop: "15px",
+                                border:
+                                    "1px solid #ccc",
+                                borderRadius: "6px",
+                                boxSizing:
+                                    "border-box"
+                            }}
+                        />
+
+
+                        {/* VERIFY OTP BUTTON */}
+                        <button
+                            type="button"
+                            className="login-button"
+                            style={{
+                                width: "100%",
+                                marginTop: "10px"
+                            }}
+                            onClick={handleVerifyOtp}
+                            disabled={loading}
+                        >
+
+                            {loading
+                                ? "Verifying..."
+                                : "Verify OTP"
+                            }
+
+                        </button>
+
+                    </div>
+
+                )}
+
+
+                {/* REGISTER */}
+                {!qrCode && (
+
+                    <div
+                        style={{
+                            textAlign: "center",
+                            marginTop: "20px"
+                        }}
+                    >
+
+                        <span>
+                            Don't have an account?
+                        </span>
+
+                        <br />
+
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            style={{
+                                marginTop: "10px",
+                                width: "100%"
+                            }}
+                            onClick={onRegister}
+                        >
+
+                            Create New Account
+
+                        </button>
+
+                    </div>
+
+                )}
 
             </div>
 
         </div>
+
     );
 }
 
