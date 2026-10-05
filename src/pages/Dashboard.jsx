@@ -8,6 +8,10 @@ import {
     deleteEmployee
 } from "../services/employeeService";
 
+import {
+    getSalaryByEmployeeId,
+    addSalary
+} from "../services/salaryService";
 import "../css/style.css";
 
 
@@ -16,12 +20,23 @@ function Dashboard({ onLogout }) {
     const [showSalary, setShowSalary] = useState(false);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [salaryDetails, setSalaryDetails] = useState([]);
+
+
+    const [salaryLoading, setSalaryLoading] = useState(false);
 
     // Selected employee for popup
     const [selectedEmployee, setSelectedEmployee] = useState(null);
 
     // Show Add Salary form
     const [showSalaryForm, setShowSalaryForm] = useState(false);
+
+    const [salary, setSalary] = useState({
+    salaryMonth: "",
+    salaryDate: "",
+    paymentStatus: "Pending",
+    remarks: ""
+});
 
     const [showForm, setShowForm] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -119,16 +134,26 @@ function Dashboard({ onLogout }) {
                 );
 
             }
-            else {
+           else {
 
-                result = await createEmployee(employee);
+    const employeeData = {
+        name: employee.name,
+        emailAddress: employee.emailAddress,
+        department: employee.department,
+        position: employee.position,
+        dob: employee.dob || null
+    };
 
-                alert(
-                    result?.message ||
-                    "Employee Created Successfully!"
-                );
+    console.log("Create Employee Data:", employeeData);
 
-            }
+    result = await createEmployee(employeeData);
+
+    alert(
+        result?.message ||
+        "Employee Created Successfully!"
+    );
+
+}
 
 
             setEmployee({
@@ -283,17 +308,110 @@ function Dashboard({ onLogout }) {
     // ================================
     // EMPLOYEE NAME CLICK
     // ================================
+const handleEmployeeClick = async (emp) => {
 
-    const handleEmployeeClick = (emp) => {
+    console.log("Selected Employee:", emp);
 
-        console.log("Selected Employee:", emp);
+    setSelectedEmployee(emp);
+    setShowSalaryForm(false);
+    setSalaryDetails([]);
 
-        setSelectedEmployee(emp);
+    try {
+
+        setSalaryLoading(true);
+
+        const result = await getSalaryByEmployeeId(emp.id);
+
+        console.log("Salary Result:", result);
+
+        if (result?.data) {
+            setSalaryDetails(result.data);
+        } else {
+            setSalaryDetails([]);
+        }
+
+    } catch (error) {
+
+        console.error("Get Salary Error:", error);
+
+        setSalaryDetails([]);
+
+    } finally {
+
+        setSalaryLoading(false);
+
+    }
+};
+
+
+const handleSaveSalary = async () => {
+
+    if (!selectedEmployee?.id) {
+        alert("Employee not selected");
+        return;
+    }
+
+    if (!salary.salaryMonth) {
+        alert("Please select Salary Month");
+        return;
+    }
+
+    try {
+
+        const salaryData = {
+            employeeId: selectedEmployee.id,
+            salaryMonth: `${salary.salaryMonth}-01T00:00:00`,
+            salaryDate: salary.salaryDate
+                ? `${salary.salaryDate}T00:00:00`
+                : null,
+            paymentStatus: salary.paymentStatus || "Pending",
+            remarks: salary.remarks || null
+        };
+
+        console.log("Salary Data:", salaryData);
+
+        const result = await addSalary(salaryData);
+
+        console.log("Add Salary Result:", result);
+
+        alert(
+            result?.message ||
+            "Salary Added Successfully!"
+        );
+
+        setSalary({
+            salaryMonth: "",
+            salaryDate: "",
+            paymentStatus: "Pending",
+            remarks: ""
+        });
 
         setShowSalaryForm(false);
 
-    };
+        const salaryResult =
+            await getSalaryByEmployeeId(
+                selectedEmployee.id
+            );
 
+        if (salaryResult?.data) {
+            setSalaryDetails(salaryResult.data);
+        } else {
+            setSalaryDetails([]);
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Save Salary Error:",
+            error
+        );
+
+        alert(
+            error.response?.data?.message ||
+            "Unable to save salary"
+        );
+    }
+};
 
     // ================================
     // CLOSE EMPLOYEE POPUP
@@ -777,57 +895,54 @@ function Dashboard({ onLogout }) {
 
                         {/* EMPLOYEE ID */}
 
-                      
-
-
                         {/* NAME */}
-
+{/* 
                         <p>
                             <strong>
                                 Name:
                             </strong>{" "}
                             {selectedEmployee.name}
-                        </p>
+                        </p> */}
 
 
                         {/* EMAIL */}
 
-                        <p>
+                        {/* <p>
                             <strong>
                                 Email:
                             </strong>{" "}
                             {selectedEmployee.emailAddress}
-                        </p>
+                        </p> */}
 
 
                         {/* DEPARTMENT */}
 
-                        <p>
+                        {/* <p>
                             <strong>
                                 Department:
                             </strong>{" "}
                             {selectedEmployee.department}
-                        </p>
+                        </p> */}
 
 
                         {/* POSITION */}
 
-                        <p>
+                        {/* <p>
                             <strong>
                                 Position:
                             </strong>{" "}
                             {selectedEmployee.position}
-                        </p>
+                        </p> */}
 
 
                         {/* DOB */}
 
-                        <p>
+                        {/* <p>
                             <strong>
                                 Date of Birth:
                             </strong>{" "}
                             {selectedEmployee.dob}
-                        </p>
+                        </p> */}
 
 
                         <hr />
@@ -835,32 +950,121 @@ function Dashboard({ onLogout }) {
 
                         {/* ================= SALARY SECTION ================= */}
 
-                        {!showSalaryForm ? (
+         {!showSalaryForm ? (
 
-                            <div>
+    <div>
 
-                                <h3>
-                                    Salary Details
-                                </h3>
+        <h3>Salary Details</h3>
 
+        {salaryLoading ? (
 
-                                <p>
-                                    No Salary Details Found
-                                </p>
+            <p>Loading Salary Details...</p>
 
+        ) : salaryDetails.length === 0 ? (
 
-                                <button
-                                    type="button"
-                                    className="primary-button"
-                                    onClick={() =>
-                                        setShowSalaryForm(true)
-                                    }
-                                >
-                                    + Add Salary
-                                </button>
+            <div>
 
-                            </div>
+                <p>No Salary Details Found</p>
 
+                <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => setShowSalaryForm(true)}
+                >
+                    + Add Salary
+                </button>
+
+            </div>
+
+        ) : (
+
+            <div>
+
+                <table
+                    style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        marginTop: "15px"
+                    }}
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                Salary Month
+                            </th>
+
+                            <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                Salary Date
+                            </th>
+
+                            <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                Payment Status
+                            </th>
+
+                            <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                Remarks
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {salaryDetails.map((salary, index) => (
+
+                            <tr key={index}>
+
+                                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                    {salary.salaryMonth
+                                        ? new Date(
+                                              salary.salaryMonth
+                                          ).toLocaleDateString()
+                                        : "-"}
+                                </td>
+
+                                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                    {salary.salaryDate
+                                        ? new Date(
+                                              salary.salaryDate
+                                          ).toLocaleDateString()
+                                        : "-"}
+                                </td>
+
+                                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                    {salary.paymentStatus || "-"}
+                                </td>
+
+                                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                                    {salary.remarks || "-"}
+                                </td>
+
+                            </tr>
+
+                        ))}
+
+                    </tbody>
+
+                </table>
+
+                <br />
+
+                <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => setShowSalaryForm(true)}
+                >
+                     Add Salary
+                </button>
+
+            </div>
+
+        )}
+
+    </div>
                         ) : (
 
                             <div>
@@ -879,13 +1083,20 @@ function Dashboard({ onLogout }) {
                                     </label>
 
                                     <input
-                                        type="month"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            marginTop: "5px"
-                                        }}
-                                    />
+    type="month"
+    value={salary.salaryMonth}
+    onChange={(e) =>
+        setSalary({
+            ...salary,
+            salaryMonth: e.target.value
+        })
+    }
+    style={{
+        width: "100%",
+        padding: "10px",
+        marginTop: "5px"
+    }}
+/>
 
                                 </div>
 
@@ -899,14 +1110,20 @@ function Dashboard({ onLogout }) {
                                     </label>
 
                                     <input
-                                        type="date"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            marginTop: "5px"
-                                        }}
-                                    />
-
+    type="date"
+    value={salary.salaryDate}
+    onChange={(e) =>
+        setSalary({
+            ...salary,
+            salaryDate: e.target.value
+        })
+    }
+    style={{
+        width: "100%",
+        padding: "10px",
+        marginTop: "5px"
+    }}
+/>
                                 </div>
 
 
@@ -918,28 +1135,18 @@ function Dashboard({ onLogout }) {
                                         Payment Status
                                     </label>
 
-                                    <select
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            marginTop: "5px"
-                                        }}
-                                    >
-
-                                        <option value="">
-                                            Select Status
-                                        </option>
-
-                                        <option value="Paid">
-                                            Paid
-                                        </option>
-
-                                        <option value="Pending">
-                                            Pending
-                                        </option>
-
-                                    </select>
-
+                                   <select
+    value={salary.paymentStatus}
+    onChange={(e) =>
+        setSalary({
+            ...salary,
+            paymentStatus: e.target.value
+        })
+    }
+>
+    <option value="Pending">Pending</option>
+    <option value="Paid">Paid</option>
+</select>
                                 </div>
 
 
@@ -952,14 +1159,21 @@ function Dashboard({ onLogout }) {
                                     </label>
 
                                     <textarea
-                                        placeholder="Enter Remarks"
-                                        rows="3"
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            marginTop: "5px"
-                                        }}
-                                    />
+    value={salary.remarks}
+    onChange={(e) =>
+        setSalary({
+            ...salary,
+            remarks: e.target.value
+        })
+    }
+    placeholder="Enter Remarks"
+    rows="3"
+    style={{
+        width: "100%",
+        padding: "10px",
+        marginTop: "5px"
+    }}
+/>
 
                                 </div>
 
@@ -969,11 +1183,9 @@ function Dashboard({ onLogout }) {
                                 <button
                                     type="button"
                                     className="primary-button"
-                                    onClick={() =>
-                                        alert(
-                                            "Salary Save API will be connected next."
-                                        )
-                                    }
+                                    onClick={handleSaveSalary}
+                                       
+                                    
                                 >
                                     Save Salary
                                 </button>
